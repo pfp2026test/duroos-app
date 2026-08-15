@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:4000/api"; // swap for your deployed API URL
+const API_BASE = "https://duroos-app.onrender.com/api"; // swap for your deployed API URL
 
 export async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`);
