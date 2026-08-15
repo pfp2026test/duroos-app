@@ -1,9 +1,12 @@
 import useSWR from "swr";
 import { apiFetch } from "../lib/api";
+import { requireAdminAuth } from "../lib/authGuard";
 
 const fetcher = (path) => apiFetch(path);
 
 export default function QueuePage() {
+  requireAdminAuth();
+
   const { data: queue, mutate } = useSWR("/duroos/admin/queue", fetcher);
 
   async function requestTranslation(id) {
@@ -40,3 +43,5 @@ export default function QueuePage() {
     </div>
   );
 }
+
+
