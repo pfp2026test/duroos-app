@@ -3,11 +3,11 @@ import express from "express";
 import cors from "cors";
 
 import duroosRoutes from "./lib/routes/duroos.js";
-import playlistRoutes from ".lib/routes/playlists.js";
-import resourceRoutes from ".lib/routes/resources.js";
-import commentRoutes from ".lib/routes/comments.js";
-import authRoutes from ".lib/routes/auth.js";
-import userRoutes from ".lib/routes/users.js";
+import playlistRoutes from "./lib/routes/playlists.js";
+import resourceRoutes from "./lib/routes/resources.js";
+import commentRoutes from "./lib/routes/comments.js";
+import authRoutes from "./lib/routes/auth.js";
+import userRoutes from "./lib/routes/users.js";
 
 const app = express();
 app.use(cors());
