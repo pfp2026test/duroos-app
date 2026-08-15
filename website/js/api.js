@@ -1,6 +1,6 @@
 // Point this at your backend's address (the .replit.dev URL from your
 // backend Repl, or your production API domain once you have one).
-const API_BASE = "http://localhost:4000/api";
+const API_BASE = "https://duroos-app.onrender.com/api";
 
 function authHeaders() {
   const token = localStorage.getItem("duroos_token");
