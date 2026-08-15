@@ -1,0 +1,189 @@
+// Duroos App — Database Schema
+// Postgres via Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Language {
+  ARABIC
+  ENGLISH
+}
+
+enum ContentStatus {
+  DRAFT       // admin still filling in details
+  PROCESSING  // AI translation/captions running
+  IN_REVIEW   // ready for admin approval
+  PUBLISHED   // live in the app
+  REJECTED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  CONTENT_ADMIN   // can upload/edit duroos, playlists
+  REVIEWER        // can approve AI resources/translations only
+}
+
+enum ResourceStatus {
+  NOT_REQUESTED   // admin hasn't asked for AI resource yet
+  GENERATING
+  PENDING_APPROVAL
+  VERIFIED        // admin approved, visible to users
+  REJECTED
+}
+
+model Admin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          AdminRole @default(CONTENT_ADMIN)
+  createdAt     DateTime  @default(now())
+
+  duroosUploaded  Duroos[]      @relation("UploadedBy")
+  playlistsCreated Playlist[]
+  resourcesApproved Resource[]  @relation("ApprovedBy")
+}
+
+model Speaker {
+  id          String   @id @default(cuid())
+  name        String
+  nameArabic  String?
+  bio         String?
+  createdAt   DateTime @default(now())
+
+  duroos      Duroos[]
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  titleArabic String?
+  author      String?
+  createdAt   DateTime @default(now())
+
+  duroos      Duroos[]
+  playlists   Playlist[]
+}
+
+model Playlist {
+  id          String   @id @default(cuid())
+  name        String              // admin-chosen name
+  nameArabic  String?
+  description String?
+  bookId      String?
+  book        Book?    @relation(fields: [bookId], references: [id])
+  createdById String
+  createdBy   Admin    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  duroos      Duroos[]
+}
+
+model Duroos {
+  id              String        @id @default(cuid())
+  title           String
+  titleArabic     String?
+  description     String?       // "what is covered"
+  language        Language      // original language of the lesson
+  youtubeUrl      String
+  youtubeVideoId  String
+  thumbnailUrl    String?
+  durationSeconds Int?
+
+  speakerId       String?
+  speaker         Speaker?      @relation(fields: [speakerId], references: [id])
+
+  bookId          String?
+  book            Book?         @relation(fields: [bookId], references: [id])
+
+  playlistId      String?
+  playlist        Playlist?     @relation(fields: [playlistId], references: [id])
+  orderInPlaylist Int?          // position within playlist
+
+  status          ContentStatus @default(DRAFT)
+
+  uploadedById    String
+  uploadedBy      Admin         @relation("UploadedBy", fields: [uploadedById], references: [id])
+
+  createdAt       DateTime      @default(now())
+  publishedAt     DateTime?
+
+  captions        Caption[]
+  resources       Resource[]
+  comments        Comment[]
+
+  @@index([status])
+  @@index([language])
+}
+
+model Caption {
+  id          String   @id @default(cuid())
+  duroosId    String
+  duroos      Duroos   @relation(fields: [duroosId], references: [id])
+  language    Language
+  isOriginal  Boolean  @default(false)   // false = AI-translated
+  vttContent  String   // WebVTT/SRT caption text
+  voiceoverUrl String? // generated dubbed audio track, if produced
+  generatedAt DateTime @default(now())
+
+  @@unique([duroosId, language])
+}
+
+model Resource {
+  id           String         @id @default(cuid())
+  duroosId     String?
+  duroos       Duroos?        @relation(fields: [duroosId], references: [id])
+  playlistId   String?        // resources can also attach to a whole series
+
+  language     Language
+  title        String
+  content      String         // AI-generated notes/summary, markdown
+  citations    Citation[]
+
+  status       ResourceStatus @default(NOT_REQUESTED)
+  requestedById String?       // admin who triggered generation
+  approvedById String?
+  approvedBy   Admin?         @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  createdAt    DateTime       @default(now())
+  approvedAt   DateTime?
+}
+
+model Citation {
+  id          String    @id @default(cuid())
+  resourceId  String
+  resource    Resource  @relation(fields: [resourceId], references: [id])
+  sourceUrl   String    // shamela.ws link
+  sourceTitle String?
+  quoteArabic String?
+  quoteEnglish String?  // AI translation of the quote
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+
+  comments     Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  duroosId  String
+  duroos    Duroos   @relation(fields: [duroosId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  body      String
+  hidden    Boolean  @default(false)   // moderation flag
+  createdAt DateTime @default(now())
+
+  @@index([duroosId])
+}
