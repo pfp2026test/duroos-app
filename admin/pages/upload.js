@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiFetch } from "../lib/api";
+import { requireAdminAuth } from "../lib/authGuard";
 
 // Extracts the YouTube video id from common URL formats.
 function parseYoutubeId(url) {
@@ -8,6 +9,8 @@ function parseYoutubeId(url) {
 }
 
 export default function UploadPage() {
+  requireAdminAuth();
+
   const [form, setForm] = useState({
     title: "",
     titleArabic: "",
@@ -77,3 +80,4 @@ export default function UploadPage() {
 }
 
 const inputStyle = { display: "block", width: "100%", padding: 8, marginTop: 4 };
+
