@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Log in — Duroos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="brand-mark display" style="font-size:1.3rem;">Duroos</div>
+    <h2 style="margin-bottom:6px;">Welcome back</h2>
+    <p style="margin-bottom:24px;">Log in to pick up where you left off.</p>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required autocomplete="email" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required autocomplete="current-password" />
+      </div>
+      <div id="msg" class="form-msg"></div>
+      <button class="btn btn-primary btn-block" type="submit">Log in</button>
+    </form>
+
+    <div class="auth-switch">New here? <a href="signup.html">Create an account</a></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  const form = document.getElementById("login-form");
+  const msg = document.getElementById("msg");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.textContent = "";
+    msg.className = "form-msg";
+    const submitBtn = form.querySelector("button");
+    submitBtn.disabled = true;
+
+    try {
+      const { token } = await api.login(
+        document.getElementById("email").value,
+        document.getElementById("password").value
+      );
+      auth.setSession(token);
+      window.location.href = "app.html";
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.classList.add("error");
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

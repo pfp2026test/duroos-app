@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign up — Duroos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="brand-mark display" style="font-size:1.3rem;">Duroos</div>
+    <h2 style="margin-bottom:6px;">Create your account</h2>
+    <p style="margin-bottom:24px;">Free — just enough to save your place and join the discussion.</p>
+
+    <form id="signup-form">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" type="text" autocomplete="name" />
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" required autocomplete="email" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required minlength="8" autocomplete="new-password" />
+      </div>
+      <div id="msg" class="form-msg"></div>
+      <button class="btn btn-primary btn-block" type="submit">Sign up</button>
+    </form>
+
+    <div class="auth-switch">Already have an account? <a href="login.html">Log in</a></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  const form = document.getElementById("signup-form");
+  const msg = document.getElementById("msg");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.textContent = "";
+    msg.className = "form-msg";
+    const submitBtn = form.querySelector("button");
+    submitBtn.disabled = true;
+
+    try {
+      const { token } = await api.signup(
+        document.getElementById("email").value,
+        document.getElementById("password").value,
+        document.getElementById("name").value
+      );
+      auth.setSession(token);
+      window.location.href = "app.html";
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.classList.add("error");
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

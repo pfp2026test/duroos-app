@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Library — Duroos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="wrap">
+  <div class="app-header">
+    <div class="brand display" style="font-size:1.2rem;">Duroos</div>
+    <button class="btn btn-ghost" id="signout">Sign out</button>
+  </div>
+
+  <h2>Library</h2>
+  <div class="filters">
+    <button class="chip active" data-lang="">All</button>
+    <button class="chip" data-lang="ENGLISH">English</button>
+    <button class="chip" data-lang="ARABIC">Arabic</button>
+  </div>
+
+  <div id="list" class="durs-list">
+    <div class="empty-state">Loading lessons…</div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  auth.requireSignIn();
+
+  document.getElementById("signout").addEventListener("click", () => auth.signOut());
+
+  const listEl = document.getElementById("list");
+  const chips = document.querySelectorAll(".chip");
+
+  async function load(language) {
+    listEl.innerHTML = `<div class="empty-state">Loading lessons…</div>`;
+    try {
+      const duroos = await api.listDuroos(language);
+      if (duroos.length === 0) {
+        listEl.innerHTML = `<div class="empty-state">No lessons published yet — check back soon.</div>`;
+        return;
+      }
+      listEl.innerHTML = duroos.map((d) => `
+        <a class="durs-row" href="durs.html?id=${d.id}">
+          <img class="durs-thumb" src="${d.thumbnailUrl || ""}" alt="" onerror="this.style.display='none'"/>
+          <div>
+            <h3>${d.title}</h3>
+            <div class="meta">${d.speaker?.name || "Unknown speaker"}${d.book ? " · " + d.book.title : ""}</div>
+          </div>
+        </a>
+      `).join("");
+    } catch (err) {
+      listEl.innerHTML = `<div class="empty-state">Couldn't load the library: ${err.message}</div>`;
+    }
+  }
+
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      chips.forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      load(chip.dataset.lang);
+    });
+  });
+
+  load("");
+</script>
+
+</body>
+</html>

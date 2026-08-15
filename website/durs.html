@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Durs — Duroos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="wrap">
+  <div class="app-header">
+    <a class="brand display" href="app.html" style="font-size:1.2rem;">← Duroos</a>
+    <button class="btn btn-ghost" id="signout">Sign out</button>
+  </div>
+
+  <div id="content"><div class="empty-state">Loading…</div></div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  auth.requireSignIn();
+  document.getElementById("signout").addEventListener("click", () => auth.signOut());
+
+  const id = new URLSearchParams(window.location.search).get("id");
+  const contentEl = document.getElementById("content");
+
+  if (!id) {
+    contentEl.innerHTML = `<div class="empty-state">No lesson selected. <a href="app.html">Back to library</a></div>`;
+  } else {
+    load();
+  }
+
+  async function load() {
+    try {
+      const durs = await api.getDuroos(id);
+      const comments = await api.getComments(id);
+      render(durs, comments);
+    } catch (err) {
+      contentEl.innerHTML = `<div class="empty-state">Couldn't load this lesson: ${err.message}</div>`;
+    }
+  }
+
+  function render(durs, comments) {
+    const verified = (durs.resources || []).filter((r) => r.status === "VERIFIED");
+
+    contentEl.innerHTML = `
+      <div class="player-wrap">
+        <iframe src="https://www.youtube.com/embed/${durs.youtubeVideoId}" allowfullscreen></iframe>
+      </div>
+
+      <h2>${durs.title}</h2>
+      <p class="meta">${durs.speaker?.name || ""}${durs.book ? " · " + durs.book.title : ""}</p>
+      <p>${durs.description || ""}</p>
+
+      ${verified.length ? `
+        <div class="rosette-divider" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 18 18"><path d="M9 0l2 7 7 2-7 2-2 7-2-7-7-2 7-2z" fill="currentColor"/></svg>
+        </div>
+        <h2 style="font-size:1.2rem;">Resources</h2>
+        ${verified.map((r) => `
+          <div class="resource-card">
+            <h3 style="font-size:1rem; margin-bottom:8px;">${r.title}</h3>
+            <p style="white-space:pre-wrap;">${r.content}</p>
+          </div>
+        `).join("")}
+      ` : ""}
+
+      <div class="rosette-divider" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 18 18"><path d="M9 0l2 7 7 2-7 2-2 7-2-7-7-2 7-2z" fill="currentColor"/></svg>
+      </div>
+      <h2 style="font-size:1.2rem;">Comments (<span id="comment-count">${comments.length}</span>)</h2>
+      <div id="comments">
+        ${comments.map((c) => `
+          <div class="comment">
+            <div class="author">${c.user?.name || "Someone"}</div>
+            <div>${c.body}</div>
+          </div>
+        `).join("") || `<p class="meta">No comments yet — be the first.</p>`}
+      </div>
+
+      <form class="comment-form" id="comment-form">
+        <textarea id="comment-body" placeholder="Share a thought or ask a question…" required></textarea>
+        <button class="btn btn-primary" type="submit">Post</button>
+      </form>
+      <div id="comment-msg" class="form-msg"></div>
+    `;
+
+    document.getElementById("comment-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const textarea = document.getElementById("comment-body");
+      const msg = document.getElementById("comment-msg");
+      msg.textContent = "";
+      try {
+        await api.postComment(id, textarea.value);
+        textarea.value = "";
+        load(); // reload to show the new comment
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.classList.add("error");
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
