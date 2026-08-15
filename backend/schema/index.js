@@ -2,12 +2,12 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 
-import duroosRoutes from "./routes/duroos.js";
-import playlistRoutes from "./routes/playlists.js";
-import resourceRoutes from "./routes/resources.js";
-import commentRoutes from "./routes/comments.js";
-import authRoutes from "./routes/auth.js";
-import userRoutes from "./routes/users.js";
+import duroosRoutes from "./lib/routes/duroos.js";
+import playlistRoutes from ".lib/routes/playlists.js";
+import resourceRoutes from ".lib/routes/resources.js";
+import commentRoutes from ".lib/routes/comments.js";
+import authRoutes from ".lib/routes/auth.js";
+import userRoutes from ".lib/routes/users.js";
 
 const app = express();
 app.use(cors());
