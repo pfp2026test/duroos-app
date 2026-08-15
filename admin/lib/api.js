@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://duroos-app.onrender.com/api";
 
 function authHeaders() {
   const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
