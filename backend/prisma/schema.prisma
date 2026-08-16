@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Language {
+  ARABIC
+  ENGLISH
+}
+
+enum ContentStatus {
+  DRAFT
+  PROCESSING
+  IN_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  CONTENT_ADMIN
+  REVIEWER
+}
+
+enum ResourceStatus {
+  NOT_REQUESTED
+  GENERATING
+  PENDING_APPROVAL
+  VERIFIED
+  REJECTED
+}
+
+model Admin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          AdminRole @default(CONTENT_ADMIN)
+  createdAt     DateTime  @default(now())
+
+  duroosUploaded  Duroos[]      @relation("UploadedBy")
+  playlistsCreated Playlist[]
+  resourcesApproved Resource[]  @relation("ApprovedBy")
+}
+
+model Speaker {
+  id          String   @id @default(cuid())
+  name        String
+  nameArabic  String?
+  bio         String?
+  createdAt   DateTime @default(now())
+
+  duroos      Duroos[]
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  titleArabic String?
+  author      String?
+  createdAt   DateTime @default(now())
+
+  duroos      Duroos[]
+  playlists   Playlist[]
+}
+
+model Playlist {
+  id          String   @id @default(cuid())
+  name        String
+  nameArabic  String?
+  description String?
+  bookId      String?
+  book        Book?    @relation(fields: [bookId], references: [id])
+  createdById String
+  createdBy   Admin    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  duroos      Duroos[]
+}
+
+model Duroos {
+  id              String        @id @default(cuid())
+  title           String
+  titleArabic     String?
+  description     String?
+  language        Language
+  youtubeUrl      String
+  youtubeVideoId  String
+  thumbnailUrl    String?
+  durationSeconds Int?
+
+  speakerId       String?
+  speaker         Speaker?      @relation(fields: [speakerId], references: [id])
+
+  bookId          String?
+  book            Book?         @relation(fields: [bookId], references: [id])
+
+  playlistId      String?
+  playlist        Playlist?     @relation(fields: [playlistId], references: [id])
+  orderInPlaylist Int?
+
+  status          ContentStatus @default(DRAFT)
+
+  uploadedById    String
+  uploadedBy      Admin         @relation("UploadedBy", fields: [uploadedById], references: [id])
+
+  createdAt       DateTime      @default(now())
+  publishedAt     DateTime?
+
+  captions        Caption[]
+  resources       Resource[]
+  comments        Comment[]
+
+  @@index([status])
+  @@index([language])
+}
+
+model Caption {
+  id          String   @id @default(cuid())
+  duroosId    String
+  duroos      Duroos   @relation(fields: [duroosId], references: [id])
+  language    Language
+  isOriginal  Boolean  @default(false)
+  vttContent  String
+  voiceoverUrl String?
+  generatedAt DateTime @default(now())
+
+  @@unique([duroosId, language])
+}
+
+model Resource {
+  id           String         @id @default(cuid())
+  duroosId     String?
+  duroos       Duroos?        @relation(fields: [duroosId], references: [id])
+  playlistId   String?
+
+  language     Language
+  title        String
+  content      String
+  citations    Citation[]
+
+  status       ResourceStatus @default(NOT_REQUESTED)
+  requestedById String?
+  approvedById String?
+  approvedBy   Admin?         @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  createdAt    DateTime       @default(now())
+  approvedAt   DateTime?
+}
+
+model Citation {
+  id          String    @id @default(cuid())
+  resourceId  String
+  resource    Resource  @relation(fields: [resourceId], references: [id])
+  sourceUrl   String
+  sourceTitle String?
+  quoteArabic String?
+  quoteEnglish String?
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+
+  comments     Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  duroosId  String
+  duroos    Duroos   @relation(fields: [duroosId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  body      String
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([duroosId])
+}
