@@ -1,35 +1,71 @@
-import { Router } from "express";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
-import prisma from "../lib/prisma.js";
+import { useState } from "react";
+import { apiFetch } from "../lib/api";
 
-const router = Router();
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-// NOTE: there's deliberately no self-signup route for admins — create
-// admin accounts by hand via Prisma Studio (set passwordHash with
-// bcrypt.hashSync("somepassword", 10) in a one-off script) rather than
-// exposing open registration for privileged accounts.
-router.post("/login", async (req, res, next) => {
-  try {
-    const email = (req.body.email || "").trim().toLowerCase();
-    const { password } = req.body;
-    const admin = await prisma.admin.findFirst({
-      where: { email: { equals: email, mode: "insensitive" } },
-    });
-    if (!admin) return res.status(401).json({ error: "Invalid credentials" });
-
-    const valid = await bcrypt.compare(password, admin.passwordHash);
-    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
-
-    const token = jwt.sign(
-      { id: admin.id, role: admin.role, email: admin.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "12h" }
-    );
-    res.json({ token, admin: { id: admin.id, name: admin.name, role: admin.role } });
-  } catch (e) {
-    next(e);
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const { token } = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      localStorage.setItem("adminToken", token);
+      window.location.href = "/queue";
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
   }
-});
 
-export default router;
+  return (
+    <div style={{ maxWidth: 360, margin: "80px auto", fontFamily: "sans-serif" }}>
+      <h1>Admin log in</h1>
+      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
+        <label>
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
+            style={inputStyle}
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
+            style={inputStyle}
+          />
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: "normal" }}>
+          <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+          Show password
+        </label>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <button type="submit" disabled={loading}>
+          {loading ? "Logging in…" : "Log in"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+const inputStyle = { display: "block", width: "100%", padding: 8, marginTop: 4 };
