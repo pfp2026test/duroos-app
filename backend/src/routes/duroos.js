@@ -5,9 +5,11 @@ import { requireAdmin } from "../middleware/requireAdmin.js";
 
 const router = Router();
 
+// ---- Public: list & fetch published duroos ----
+
 router.get("/", async (req, res, next) => {
   try {
-    const { language, speakerId, bookId, playlistId } = req.query;
+    const { language, speakerId, bookId, playlistId, faculty } = req.query;
     const duroos = await prisma.duroos.findMany({
       where: {
         status: "PUBLISHED",
@@ -15,9 +17,10 @@ router.get("/", async (req, res, next) => {
         ...(speakerId && { speakerId }),
         ...(bookId && { bookId }),
         ...(playlistId && { playlistId }),
+        ...(faculty && { faculty }),
       },
       include: { speaker: true, book: true, playlist: true },
-      orderBy: { publishedAt: "desc" },
+      orderBy: [{ seriesName: "asc" }, { episodeNumber: "asc" }, { publishedAt: "desc" }],
     });
     res.json(duroos);
   } catch (e) {
@@ -40,6 +43,8 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
+// ---- Admin: create/edit/publish ----
+
 const createSchema = z.object({
   title: z.string().min(1),
   titleArabic: z.string().optional(),
@@ -47,6 +52,10 @@ const createSchema = z.object({
   language: z.enum(["ARABIC", "ENGLISH"]),
   youtubeUrl: z.string().url(),
   youtubeVideoId: z.string().min(1),
+  faculty: z.enum(["AQEEDAH", "FIQH", "HADITH", "TAFSEER", "ARABIC_LANGUAGE", "SEERAH", "TARBIYAH_TAZKIYAH"]).optional(),
+  learningObjectives: z.string().optional(),
+  seriesName: z.string().optional(),
+  episodeNumber: z.number().int().optional(),
   speakerId: z.string().optional(),
   bookId: z.string().optional(),
   playlistId: z.string().optional(),
@@ -75,12 +84,15 @@ router.patch("/:id", requireAdmin(["SUPER_ADMIN", "CONTENT_ADMIN"]), async (req,
   }
 });
 
+// Kicks off AI translation/captioning. Actual generation happens in a
+// background worker (see backend/src/jobs) — this just flips status.
 router.post("/:id/request-translation", requireAdmin(["SUPER_ADMIN", "CONTENT_ADMIN"]), async (req, res, next) => {
   try {
     const durs = await prisma.duroos.update({
       where: { id: req.params.id },
       data: { status: "PROCESSING" },
     });
+    // TODO: enqueue translation/caption/voiceover job
     res.json(durs);
   } catch (e) {
     next(e);
@@ -99,6 +111,7 @@ router.post("/:id/publish", requireAdmin(["SUPER_ADMIN", "CONTENT_ADMIN"]), asyn
   }
 });
 
+// ---- Admin: review queue ----
 router.get("/admin/queue", requireAdmin(), async (req, res, next) => {
   try {
     const queue = await prisma.duroos.findMany({
@@ -109,7 +122,3 @@ router.get("/admin/queue", requireAdmin(), async (req, res, next) => {
     res.json(queue);
   } catch (e) {
     next(e);
-  }
-});
-
-export default router;
