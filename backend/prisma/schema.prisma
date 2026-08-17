@@ -1,3 +1,6 @@
+// Duroos App — Database Schema
+// Postgres via Prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,25 +15,35 @@ enum Language {
   ENGLISH
 }
 
+enum Faculty {
+  AQEEDAH
+  FIQH
+  HADITH
+  TAFSEER
+  ARABIC_LANGUAGE
+  SEERAH
+  TARBIYAH_TAZKIYAH
+}
+
 enum ContentStatus {
-  DRAFT
-  PROCESSING
-  IN_REVIEW
-  PUBLISHED
+  DRAFT       // admin still filling in details
+  PROCESSING  // AI translation/captions running
+  IN_REVIEW   // ready for admin approval
+  PUBLISHED   // live in the app
   REJECTED
 }
 
 enum AdminRole {
   SUPER_ADMIN
-  CONTENT_ADMIN
-  REVIEWER
+  CONTENT_ADMIN   // can upload/edit duroos, playlists
+  REVIEWER        // can approve AI resources/translations only
 }
 
 enum ResourceStatus {
-  NOT_REQUESTED
+  NOT_REQUESTED   // admin hasn't asked for AI resource yet
   GENERATING
   PENDING_APPROVAL
-  VERIFIED
+  VERIFIED        // admin approved, visible to users
   REJECTED
 }
 
@@ -70,7 +83,7 @@ model Book {
 
 model Playlist {
   id          String   @id @default(cuid())
-  name        String
+  name        String              // admin-chosen name
   nameArabic  String?
   description String?
   bookId      String?
@@ -86,12 +99,17 @@ model Duroos {
   id              String        @id @default(cuid())
   title           String
   titleArabic     String?
-  description     String?
-  language        Language
+  description     String?       // "what is covered"
+  language        Language      // original language of the lesson
   youtubeUrl      String
   youtubeVideoId  String
   thumbnailUrl    String?
   durationSeconds Int?
+
+  faculty            Faculty?
+  learningObjectives String?     // what this specific episode aims to teach
+  seriesName         String?     // groups episodes of the same book/series together
+  episodeNumber      Int?        // position within that series, e.g. 1, 2, 3
 
   speakerId       String?
   speaker         Speaker?      @relation(fields: [speakerId], references: [id])
@@ -101,7 +119,7 @@ model Duroos {
 
   playlistId      String?
   playlist        Playlist?     @relation(fields: [playlistId], references: [id])
-  orderInPlaylist Int?
+  orderInPlaylist Int?          // position within playlist
 
   status          ContentStatus @default(DRAFT)
 
@@ -117,6 +135,7 @@ model Duroos {
 
   @@index([status])
   @@index([language])
+  @@index([faculty])
 }
 
 model Caption {
@@ -124,9 +143,9 @@ model Caption {
   duroosId    String
   duroos      Duroos   @relation(fields: [duroosId], references: [id])
   language    Language
-  isOriginal  Boolean  @default(false)
-  vttContent  String
-  voiceoverUrl String?
+  isOriginal  Boolean  @default(false)   // false = AI-translated
+  vttContent  String   // WebVTT/SRT caption text
+  voiceoverUrl String? // generated dubbed audio track, if produced
   generatedAt DateTime @default(now())
 
   @@unique([duroosId, language])
@@ -136,15 +155,15 @@ model Resource {
   id           String         @id @default(cuid())
   duroosId     String?
   duroos       Duroos?        @relation(fields: [duroosId], references: [id])
-  playlistId   String?
+  playlistId   String?        // resources can also attach to a whole series
 
   language     Language
   title        String
-  content      String
+  content      String         // AI-generated notes/summary, markdown
   citations    Citation[]
 
   status       ResourceStatus @default(NOT_REQUESTED)
-  requestedById String?
+  requestedById String?       // admin who triggered generation
   approvedById String?
   approvedBy   Admin?         @relation("ApprovedBy", fields: [approvedById], references: [id])
 
@@ -156,10 +175,10 @@ model Citation {
   id          String    @id @default(cuid())
   resourceId  String
   resource    Resource  @relation(fields: [resourceId], references: [id])
-  sourceUrl   String
+  sourceUrl   String    // shamela.ws link
   sourceTitle String?
   quoteArabic String?
-  quoteEnglish String?
+  quoteEnglish String?  // AI translation of the quote
 }
 
 model User {
@@ -179,8 +198,4 @@ model Comment {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   body      String
-  hidden    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([duroosId])
-}
+  hidden    Boolean  @default(false)   // moderation flag
