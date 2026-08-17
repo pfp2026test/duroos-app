@@ -110,6 +110,8 @@ model Duroos {
   learningObjectives String?     // what this specific episode aims to teach
   seriesName         String?     // groups episodes of the same book/series together
   episodeNumber      Int?        // position within that series, e.g. 1, 2, 3
+  startTimeSeconds   Int?        // clip start, if this episode is a segment of a longer video
+  endTimeSeconds     Int?        // clip end
 
   speakerId       String?
   speaker         Speaker?      @relation(fields: [speakerId], references: [id])
@@ -199,3 +201,8 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id])
   body      String
   hidden    Boolean  @default(false)   // moderation flag
+  createdAt DateTime @default(now())
+
+  @@index([duroosId])
+}
+
