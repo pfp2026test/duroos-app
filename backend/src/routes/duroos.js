@@ -56,6 +56,8 @@ const createSchema = z.object({
   learningObjectives: z.string().optional(),
   seriesName: z.string().optional(),
   episodeNumber: z.number().int().optional(),
+  startTimeSeconds: z.number().int().min(0).optional(),
+  endTimeSeconds: z.number().int().min(0).optional(),
   speakerId: z.string().optional(),
   bookId: z.string().optional(),
   playlistId: z.string().optional(),
@@ -122,3 +124,7 @@ router.get("/admin/queue", requireAdmin(), async (req, res, next) => {
     res.json(queue);
   } catch (e) {
     next(e);
+  }
+});
+
+export default router;
